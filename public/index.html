@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Resource Finder</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-blue: #1e40af;
+            --secondary-blue: #3b82f6;
+            --light-blue: #dbeafe;
+            --dark-blue: #1e3a8a;
+            --accent-blue: #60a5fa;
+            --navy-blue: #1e293b;
+            --sky-blue: #0ea5e9;
+            --white: #ffffff;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--gray-800);
+            background: linear-gradient(135deg, var(--light-blue) 0%, var(--white) 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+            color: var(--white);
+            padding: 1rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: var(--white);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .page {
+            display: none;
+            min-height: calc(100vh - 80px);
+            padding: 2rem 0;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--white);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: var(--secondary-blue);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-blue);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--light-blue);
+            color: var(--primary-blue);
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent-blue);
+            color: var(--white);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: var(--white);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: var(--white);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--gray-800);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--secondary-blue);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            background: var(--white);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        #map {
+            height: 500px; /* Increased height for world map */
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--gray-200);
+        }
+
+        .resource-card {
+            border-left: 4px solid var(--secondary-blue);
+            transition: all 0.3s ease;
+        }
+
+        .resource-card.shelter {
+            border-left-color: var(--primary-blue);
+        }
+
+        .resource-card.food {
+            border-left-color: var(--success);
+        }
+
+        .resource-card.medical {
+            border-left-color: var(--danger);
+        }
+
+        .resource-meta {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .resource-meta span {
+            background: var(--light-blue);
+            color: var(--primary-blue);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .alert-high {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .alert-medium {
+            background: #fffbeb;
+            border: 1px solid #fed7aa;
+            color: #92400e;
+        }
+
+        .alert-low {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0c4a6e;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            display: block;
+        }
+
+        .stat-label {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-600);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray-600);
+        }
+
+        .spinner {
+            border: 4px solid var(--light-blue);
+            border-top: 4px solid var(--secondary-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .custom-div-icon {
+            background: transparent;
+            border: none;
+            text-align: center;
+            line-height: 30px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .nav-links {
+                display: none;
+                width: 100%;
+                margin-top: 1rem;
+            }
+
+            .nav-links.active {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .resource-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            #map {
+                height: 400px; /* Adjusted for smaller screens */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
+                    Disaster Resource Finder
+                </div>
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <ul class="nav-links" id="navLinks">
+                    <li><a href="#" onclick="showPage('dashboard')" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><a href="#" onclick="showPage('map')"><i class="fas fa-map-marked-alt"></i> Resource Map</a></li>
+                    <li><a href="#" onclick="showPage('resources')"><i class="fas fa-list"></i> Resources</a></li>
+                    <li><a href="#" onclick="showPage('alerts')"><i class="fas fa-exclamation-triangle"></i> Alerts</a></li>
+                    <li><a href="#" onclick="showPage('reports')"><i class="fas fa-flag"></i> Reports</a></li>
+                    <li><a href="#" onclick="showPage('volunteer')"><i class="fas fa-hands-helping"></i> Volunteer</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div id="dashboard" class="page active">
+        <div class="container">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Emergency Resource Dashboard
+                    </h1>
+                </div>
+                <p>Welcome to the Disaster Resource Finder. Access emergency resources, report issues, and coordinate relief efforts across India.</p>
+            </div>
+
+            <div class="grid grid-3" id="statsGrid">
+                <div class="card stat-card">
+                    <span class="stat-number" id="totalResources">-</span>
+                    <span class="stat-label">Total Resources</span>
+                </div>
+                <div class="card stat-card">
+                    <span class="stat-number" id="totalCapacity">-</span>
+                    <span class="stat-label">Total Capacity</span>
+                </div>
+                <div class="card stat-card">
+                    <span class="stat-number" id="activeAlerts">-</span>
+                    <span class="stat-label">Active Alerts</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-bell"></i>
+                        Recent Emergency Alerts
+                    </h2>
+                </div>
+                <div id="recentAlerts"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-bolt"></i>
+                        Quick Actions
+                    </h2>
+                </div>
+                <div class="grid grid-2">
+                    <button class="btn btn-primary" onclick="showPage('resources')">
+                        <i class="fas fa-search"></i>
+                        Find Resources
+                    </button>
+                    <button class="btn btn-secondary" onclick="showModal('addResourceModal')">
+                        <i class="fas fa-plus"></i>
+                        Add Resource
+                    </button>
+                    <button class="btn btn-primary" onclick="showPage('reports')">
+                        <i class="fas fa-flag"></i>
+                        Report Issue
+                    </button>
+                    <button class="btn btn-secondary" onclick="showPage('volunteer')">
+                        <i class="fas fa-hands-helping"></i>
+                        Volunteer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map-page" class="page">
+        <div class="container">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title">
+                        <i class="fas fa-globe"></i>
+                        Global Resource Map
+                    </h1>
+                    <div>
+                        <button class="btn btn-primary" onclick="getCurrentLocation()">
+                            <i class="fas fa-crosshairs"></i>
+                            My Location
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-2" style="margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Resource Type</label>
+                        <select class="form-select" id="mapFilterType" onchange="filterMapResources()">
+                            <option value="">All Types</option>
+                            <option value="shelter">Shelter</option>
+                            <option value="food">Food</option>
+                            <option value="medical">Medical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Search</label>
+                        <input type="text" class="form-input" id="mapSearch" placeholder="Search by name or address" oninput="debounceSearch()">
+                    </div>
+                </div>
+                
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="resources" class="page">
+        <div class="container">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title">
+                        <i class="fas fa-list"></i>
+                        Emergency Resources
+                    </h1>
+                    <button class="btn btn-primary" onclick="showModal('addResourceModal')">
+                        <i class="fas fa-plus"></i>
+                        Add Resource
+                    </button>
+                </div>
+
+                <div class="grid grid-3" style="margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Search</label>
+                        <input type="text" class="form-input" id="resourceSearch" placeholder="Search resources..." onkeyup="searchResources()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Filter by Type</label>
+                        <select class="form-select" id="resourceFilter" onchange="filterResources()">
+                            <option value="">All Types</option>
+                            <option value="shelter">Shelter</option>
+                            <option value="food">Food</option>
+                            <option value="medical">Medical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sort by</label>
+                        <select class="form-select" id="resourceSort" onchange="sortResources()">
+                            <option value="name">Name</option>
+                            <option value="type">Type</option>
+                            <option value="capacity">Capacity</option>
+                            <option value="dateAdded">Date Added</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="resourcesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="alerts" class="page">
+        <div class="container">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Emergency Alerts
+                    </h1>
+                    <button class="btn btn-primary" onclick="showModal('addAlertModal')">
+                        <i class="fas fa-plus"></i>
+                        Create Alert
+                    </button>
+                </div>
+                <div id="alertsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reports" class="page">
+        <div class="container">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title">
+                        <i class="fas fa-flag"></i>
+                        Report Issues
+                    </h1>
+                </div>
+                <p>Report problems with emergency resources to help keep information accurate and facilities operational.</p>
+                
+                <form id="reportForm" onsubmit="submitReport(event)">
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Resource</label>
+                            <select class="form-select" id="reportResource" required>
+                                <option value="">Select a resource...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Issue Type</label>
+                            <select class="form-select" id="reportIssue" required>
+                                <option value="">Select issue type...</option>
+                                <option value="closed">Facility Closed</option>
+                                <option value="full">At Capacity</option>
+                                <option value="damaged">Facility Damaged</option>
+                                <option value="contact">Contact Information Wrong</option>
+                                <option value="location">Location Incorrect</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-input" id="reportDescription" rows="4" placeholder="Describe the issue in detail..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Your Contact (optional)</label>
+                        <input type="text" class="form-input" id="reportContact" placeholder="Phone or email for follow-up">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                        Submit Report
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="volunteer" class="page">
+        <div class="container">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title">
+                        <i class="fas fa-hands-helping"></i>
+                        Volunteer Registration
+                    </h1>
+                </div>
+                <p>Join our network of volunteers to help during emergency situations. Your skills and time can make a difference.</p>
+                
+                <form id="volunteerForm" onsubmit="submitVolunteer(event)">
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-input" id="volunteerName" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="volunteerEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" class="form-input" id="volunteerPhone" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Location</label>
+                            <input type="text" class="form-input" id="volunteerLocation" placeholder="City, State" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Skills & Expertise</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="medical"> Medical/First Aid</label>
+                            <label><input type="checkbox" value="search-rescue"> Search & Rescue</label>
+                            <label><input type="checkbox" value="logistics"> Logistics</label>
+                            <label><input type="checkbox" value="communication"> Communication</label>
+                            <label><input type="checkbox" value="food-service"> Food Service</label>
+                            <label><input type="checkbox" value="counseling"> Counseling/Mental Health</label>
+                            <label><input type="checkbox" value="transportation"> Transportation</label>
+                            <label><input type="checkbox" value="construction"> Construction/Repair</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Availability</label>
+                        <select class="form-select" id="volunteerAvailability" required>
+                            <option value="">Select availability...</option>
+                            <option value="weekdays">Weekdays</option>
+                            <option value="weekends">Weekends</option>
+                            <option value="evenings">Evenings</option>
+                            <option value="emergency">Emergency Response</option>
+                            <option value="flexible">Flexible</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Register as Volunteer
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    <div id="addResourceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Resource</h2>
+                <button class="modal-close" onclick="hideModal('addResourceModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <form id="addResourceForm" onsubmit="return addResource(event)">
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-input" id="resourceName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="resourceType" class="form-label">Resource Type</label>
+                            <select class="form-select" id="resourceType" required>
+                                <option value="">Select type...</option>
+                                <option value="shelter">Shelter</option>
+                                <option value="food">Food</option>
+                                <option value="medical">Medical</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Latitude</label>
+                            <input type="number" class="form-input" id="resourceLat" step="0.5" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Longitude</label>
+                            <input type="number" class="form-input" id="resourceLng" step="0.5" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Contact</label>
+                            <input type="text" class="form-input" id="resourceContact" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Capacity</label>
+                            <input type="number" class="form-input" id="resourceCapacity" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Address</label>
+                        <input type="text" class="form-input" id="resourceAddress" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-input" id="resourceDescription" rows="4" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Operating Hours</label>
+                        <input type="text" class="form-input" id="resourceOperatingHours" required placeholder="e.g., 24/7 or 9:00 AM - 5:00 PM">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Facilities</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="Medical Aid"> Medical Aid</label>
+                            <label><input type="checkbox" value="Food"> Food</label>
+                            <label><input type="checkbox" value="Shelter"> Shelter</label>
+                            <label><input type="checkbox" value="Communication"> Communication</label>
+                            <label><input type="checkbox" value="Water"> Water</label>
+                            <label><input type="checkbox" value="Emergency Supplies"> Emergency Supplies</label>
+                            <label><input type="checkbox" value="Transportation"> Transportation</label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Add Resource
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="addAlertModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Emergency Alert</h2>
+                <button class="modal-close" onclick="hideModal('addAlertModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+                <form id="addAlertForm" onsubmit="addAlert(event)">
+                    <div class="form-group">
+                        <label class="form-label">Alert Title</label>
+                        <input type="text" class="form-input" id="alertTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Severity</label>
+                        <select class="form-select" id="alertSeverity" required>
+                            <option value="">Select severity...</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Affected Areas (comma-separated)</label>
+                        <input type="text" class="form-input" id="alertAffectedAreas" placeholder="requirede.g., Chennai, Mumbai, Nadu">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-input" id="alertDescription" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-bell"></i>
+                        Create Alert
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+        let map = null;
+        let markersLayer = null;
+        let userLocation = null;
+        let debounceTimeout = null;
+
+        // Initialize map
+        function initMap() {
+            if (map) {
+                map.invalidateSize();
+                updateMapMarkers();
+                return;
+            }
+            
+            map = L.map('map', {
+                center: [0, 20], // Center on world map
+                zoom: 2, // Low zoom for global view
+                minZoom: 1,
+                maxZoom: 10, // Limit zoom to keep map simple
+                zoomControl: true
+            });
+            
+            // Use a minimalistic tile layer
+            L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
+                attribution: '© &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                maxZoom: 10
+            }).addTo(map);
+            
+            markersLayer = L.layerGroup().addTo(map);
+            updateMapMarkers();
+        }
+
+        // Navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-links a').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            document.getElementById(pageId).classList.add('active');
+            document.querySelector(`.nav-links a[onclick="showPage('${pageId}')"]`).classList.add('active');
+            
+            if (pageId === 'map') {
+                initMap();
+            }
+            
+            if (pageId === 'dashboard') updateDashboard();
+            if (pageId === 'resources') updateResourcesList();
+            if (pageId === 'alerts') updateAlertsList();
+            if (pageId === 'reports') updateReportResources();
+            
+            document.getElementById('navLinks').classList.remove('active');
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('navLinks').classList.toggle('active');
+        }
+
+        // Modal handling
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            document.getElementById(modalId).querySelector('form')?.reset();
+        }
+
+        // Error handling
+        async function handleApiError(response) {
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'API request failed');
+            }
+            return response.json();
+        }
+
+        // Dashboard updates
+        async function updateDashboard() {
+            try {
+                const statsResponse = await fetch(`${API_BASE_URL}/stats`);
+                const statsData = await handleApiError(statsResponse);
+                document.getElementById('totalResources').textContent = statsData.data.totalResources;
+                document.getElementById('totalCapacity').textContent = statsData.data.totalCapacity;
+                
+                const alertsResponse = await fetch(`${API_BASE_URL}/alerts`);
+                const alertsData = await handleApiError(alertsResponse);
+                document.getElementById('activeAlerts').textContent = alertsData.data.length;
+                
+                const recentAlerts = document.getElementById('recentAlerts');
+                recentAlerts.innerHTML = alertsData.data.slice(0, 3).map(alert => `
+                    <div class="alert alert-${alert.severity}">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>${alert.title}</strong><br>
+                            ${alert.affectedAreas.join(', ')} - ${new Date(alert.dateCreated).toLocaleString()}
+                            <p>${alert.description}</p>
+                        </div>
+                    </div>
+                `).join('') || '<div class="loading">No recent alerts</div>';
+            } catch (error) {
+                console.error('Error updating dashboard:', error);
+                alert('Failed to load dashboard data. Please try again.');
+            }
+        }
+
+        // Resources handling
+        async function addResource(event) {
+            event.preventDefault();
+            try {
+                const facilities = Array.from(document.querySelectorAll('#addResourceForm input[type="checkbox"]:checked')).map(cb => cb.value);
+                const resource = {
+                    name: document.getElementById('resourceName').value,
+                    type: document.getElementById('resourceType').value,
+                    lat: parseFloat(document.getElementById('resourceLat').value),
+                    lng: parseFloat(document.getElementById('resourceLng').value),
+                    contact: document.getElementById('resourceContact').value,
+                    capacity: parseInt(document.getElementById('resourceCapacity').value),
+                    address: document.getElementById('resourceAddress').value,
+                    description: document.getElementById('resourceDescription').value,
+                    operatingHours: document.getElementById('resourceOperatingHours').value,
+                    facilities
+                };
+                
+                const response = await fetch(`${API_BASE_URL}/resources`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(resource)
+                });
+                await handleApiError(response);
+                
+                updateResourcesList();
+                updateMapMarkers();
+                updateDashboard();
+                updateReportResources();
+                hideModal('addResourceModal');
+                alert('Resource added successfully!');
+            } catch (error) {
+                console.error('Error adding resource:', error);
+                alert('Failed to add resource: ' + error.message);
+            }
+        }
+
+        async function updateResourcesList() {
+            try {
+                const search = document.getElementById('resourceSearch').value;
+                const filter = document.getElementById('resourceFilter').value;
+                const sort = document.getElementById('resourceSort').value;
+                
+                const query = new URLSearchParams();
+                if (search) query.append('search', search);
+                if (filter) query.append('type', filter);
+                
+                const response = await fetch(`${API_BASE_URL}/resources?${query.toString()}`);
+                const data = await handleApiError(response);
+                
+                let filteredResources = data.data;
+                
+                filteredResources.sort((a, b) => {
+                    if (sort === 'name') return a.name.localeCompare(b.name);
+                    if (sort === 'type') return a.type.localeCompare(b.type);
+                    if (sort === 'capacity') return b.capacity - a.capacity;
+                    if (sort === 'dateAdded') return new Date(b.dateAdded) - new Date(a.dateAdded);
+                    return 0;
+                });
+                
+                const list = document.getElementById('resourcesList');
+                list.innerHTML = filteredResources.map(r => `
+                    <div class="card resource-card ${r.type}">
+                        <div class="card-header">
+                            <h3 class="card-title">${r.name}</h3>
+                            <button class="btn btn-danger btn-sm" onclick="deleteResource(${r.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="resource-meta">
+                            <span><i class="fas fa-tag"></i> ${r.type}</span>
+                            <span><i class="fas fa-users"></i> Capacity: ${r.capacity}</span>
+                            <span><i class="fas fa-phone"></i> ${r.contact}</span>
+                            <span><i class="fas fa-map-marker-alt"></i> ${r.address}</span>
+                            <span><i class="fas fa-clock"></i> ${r.operatingHours}</span>
+                            <span><i class="fas fa-list"></i> ${r.facilities.join(', ')}</span>
+                        </div>
+                        <p>${r.description || 'No description available'}</p>
+                    </div>
+                `).join('') || '<div class="loading">No resources found</div>';
+            } catch (error) {
+                console.error('Error updating resources:', error);
+                alert('Failed to load resources. Please try again.');
+            }
+        }
+
+        async function deleteResource(id) {
+            if (confirm('Are you sure you want to delete this resource?')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/resources/${id}`, {
+                        method: 'DELETE'
+                    });
+                    await handleApiError(response);
+                    
+                    updateResourcesList();
+                    updateMapMarkers();
+                    updateDashboard();
+                    updateReportResources();
+                } catch (error) {
+                    console.error('Error deleting resource:', error);
+                    alert('Failed to delete resource: ' + error.message);
+                }
+            }
+        }
+
+        function searchResources() {
+            updateResourcesList();
+        }
+
+        function filterResources() {
+            updateResourcesList();
+        }
+
+        function sortResources() {
+            updateResourcesList();
+        }
+
+        // Map handling
+        async function updateMapMarkers() {
+            if (!map || !markersLayer) return;
+            
+            const mapElement = document.getElementById('map');
+            mapElement.innerHTML = '<div class="loading"><div class="spinner"></div>Loading resources...</div>';
+            
+            try {
+                const filterType = document.getElementById('mapFilterType').value;
+                const search = document.getElementById('mapSearch').value;
+                
+                const query = new URLSearchParams();
+                if (filterType) query.append('type', filterType);
+                if (search) query.append('search', search);
+                
+                const url = `${API_BASE_URL}/resources${query.toString() ? `?${query.toString()}` : ''}`;
+                
+                const response = await fetch(url);
+                const data = await handleApiError(response);
+                
+                markersLayer.clearLayers();
+                
+                if (data.data.length === 0) {
+                    mapElement.innerHTML = '<div class="loading">No resources found</div>';
+                    return;
+                }
+                
+                mapElement.innerHTML = ''; // Clear loading message
+                
+                data.data.forEach(r => {
+                    const icon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<i class="fas fa-${r.type === 'shelter' ? 'home' : r.type === 'food' ? 'utensils' : 'hospital'} fa-2x" style="color: ${r.type === 'shelter' ? 'var(--primary-blue)' : r.type === 'food' ? 'var(--success)' : 'var(--danger)'};"></i>`,
+                        iconSize: [30, 30]
+                    });
+                    
+                    const marker = L.marker([r.lat, r.lng], { icon })
+                        .bindPopup(`
+                            <h3>${r.name}</h3>
+                            <p><strong>Type:</strong> ${r.type}</p>
+                            <p><strong>Capacity:</strong> ${r.capacity}</p>
+                            <p><strong>Contact:</strong> ${r.contact}</p>
+                            <p><strong>Address:</strong> ${r.address}</p>
+                            <p><strong>Operating Hours:</strong> ${r.operatingHours}</p>
+                            <p><strong>Facilities:</strong> ${r.facilities.join(', ')}</p>
+                            <p>${r.description || 'No description'}</p>
+                        `);
+                    markersLayer.addLayer(marker);
+                });
+                
+                // Fit map to show all markers
+                if (data.data.length > 0) {
+                    const bounds = L.latLngBounds(data.data.map(r => [r.lat, r.lng]));
+                    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 6 });
+                }
+            } catch (error) {
+                console.error('Error updating map markers:', error);
+                mapElement.innerHTML = '<div class="loading">Failed to load map resources. Please try again.</div>';
+            }
+        }
+
+        function filterMapResources() {
+            updateMapMarkers();
+        }
+
+        function debounceSearch() {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                updateMapMarkers();
+            }, 500);
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLocation = [position.coords.latitude, position.coords.longitude];
+                        map.setView(userLocation, 6);
+                        L.marker(userLocation)
+                            .addTo(markersLayer)
+                            .bindPopup('Your Location')
+                            .openPopup();
+                        updateMapMarkers();
+                    },
+                    error => {
+                        alert('Unable to get your location. Please ensure location services are enabled.');
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by your browser.');
+            }
+        }
+
+        // Alerts handling
+        async function addAlert(event) {
+            event.preventDefault();
+            try {
+                const alert = {
+                    title: document.getElementById('alertTitle').value,
+                    severity: document.getElementById('alertSeverity').value,
+                    affectedAreas: document.getElementById('alertAffectedAreas').value.split(',').map(area => area.trim()),
+                    description: document.getElementById('alertDescription').value
+                };
+                
+                const response = await fetch(`${API_BASE_URL}/alerts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(alert)
+                });
+                await handleApiError(response);
+                
+                updateAlertsList();
+                updateDashboard();
+                hideModal('addAlertModal');
+                alert('Alert created successfully!');
+            } catch (error) {
+                console.error('Error creating alert:', error);
+                alert('Failed to create alert: ' + error.message);
+            }
+        }
+
+        async function updateAlertsList() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/alerts`);
+                const data = await handleApiError(response);
+                
+                const list = document.getElementById('alertsList');
+                list.innerHTML = data.data.map(a => `
+                    <div class="alert alert-${a.severity}">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>${a.title}</strong>
+                            <br>
+                            ${a.affectedAreas.join(', ')} - ${new Date(a.dateCreated).toLocaleString()}
+                            <p>${a.description}</p>
+                        </div>
+                    </div>
+                `).join('') || '<div class="loading">No alerts available</div>';
+            } catch (error) {
+                console.error('Error updating alerts:', error);
+                alert('Failed to load alerts. Please try again.');
+            }
+        }
+
+        // Reports handling
+        async function updateReportResources() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/resources`);
+                const data = await handleApiError(response);
+                
+                const select = document.getElementById('reportResource');
+                select.innerHTML = '<option value="">Select a resource...</option>' + 
+                    data.data.map(r => `<option value="${r.id}">${r.name} (${r.type})</option>`).join('');
+            } catch (error) {
+                console.error('Error updating report resources:', error);
+                alert('Failed to load resources for reporting. Please try again.');
+            }
+        }
+
+        async function submitReport(event) {
+            event.preventDefault();
+            try {
+                const report = {
+                    resourceId: document.getElementById('reportResource').value,
+                    issue: document.getElementById('reportIssue').value,
+                    description: document.getElementById('reportDescription').value,
+                    reporterContact: document.getElementById('reportContact').value
+                };
+                
+                const response = await fetch(`${API_BASE_URL}/reports`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(report)
+                });
+                await handleApiError(response);
+                
+                document.getElementById('reportForm').reset();
+                alert('Report submitted successfully!');
+            } catch (error) {
+                console.error('Error submitting report:', error);
+                alert('Failed to submit report: ' + error.message);
+            }
+        }
+
+        // Volunteer handling
+        async function submitVolunteer(event) {
+            event.preventDefault();
+            try {
+                const skills = Array.from(document.querySelectorAll('#volunteerForm input[type="checkbox"]:checked'))
+                    .map(cb => cb.value);
+                const volunteer = {
+                    name: document.getElementById('volunteerName').value,
+                    email: document.getElementById('volunteerEmail').value,
+                    phone: document.getElementById('volunteerPhone').value,
+                    location: document.getElementById('volunteerLocation').value,
+                    skills,
+                    availability: document.getElementById('volunteerAvailability').value
+                };
+                
+                const response = await fetch(`${API_BASE_URL}/volunteer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(volunteer)
+                });
+                await handleApiError(response);
+                
+                document.getElementById('volunteerForm').reset();
+                alert('Thank you for registering as a volunteer!');
+            } catch (error) {
+                console.error('Error submitting volunteer:', error);
+                alert('Failed to register volunteer: ' + error.message);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateDashboard();
+            updateResourcesList();
+            updateAlertsList();
+            updateReportResources();
+            
+            document.querySelector('.nav-links a[onclick="showPage(\'map\')"]').addEventListener('click', initMap);
+        });
+    </script>
+</body>
+</html>
